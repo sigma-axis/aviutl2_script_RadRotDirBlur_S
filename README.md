@@ -25,7 +25,7 @@
 以下のフォルダのいずれかに `RadRotDirBlur_S.anm2` をコピーしてください．
 
 1.  `%ProgramData%` 内の `aviutl2/Script` フォルダ
-    - 通常は `C:/ProgramData/aviutl2/Script` フォルダ)
+    - 通常は `C:/ProgramData/aviutl2/Script` フォルダ
 
 1.  (1) のフォルダにある任意の名前のフォルダ
 
