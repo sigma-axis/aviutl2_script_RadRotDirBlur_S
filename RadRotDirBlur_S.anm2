@@ -1,0 +1,357 @@
+--[[
+MIT License
+Copyright (c) 2025 sigma-axis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+https://mit-license.org/
+]]
+--information:RadRotDirBlur_S v1.00 (for beta2) by σ軸
+--label:ぼかし
+--track0:移動X,-4000,4000,0,0.01
+--track1:移動Y,-4000,4000,0,0.01
+--track@rad:拡大率,1,1000,100,0.01
+--track@rot:回転角,-720,720,00,0.01
+--value@center:中心,{0,0}
+--track@amount:強さ,-200,200,100,0.01
+--track@rel_pos:相対位置,-100,100,0,0.01
+--select@chroma:色収差,赤青A=0,赤緑A=1,緑青A=2,赤青B=3,赤緑B=4,緑青B=5
+--track@chrm_abrr:色収差強さ,-100,100,0,0.1
+--check@keep_size:サイズ固定,0
+--value@quality:精度,512
+--value@PI:PI,{}
+--[[pixelshader@apply:
+Texture2D src : register(t0);
+cbuffer constant0 : register(b0) {
+	float2 zmrot_d, zmrot_i, mov_d, mov_i;
+	float2 center, size;
+	float quality, mode_outer;
+};
+
+float2x2 make_mat(float2 zmrot)
+{
+	return float2x2(
+		zmrot.x, -zmrot.y * size.y / size.x,
+		zmrot.y * size.x / size.y, zmrot.x);
+}
+const static float2x2
+	mat_d = make_mat(zmrot_d),
+	mat_i = make_mat(zmrot_i);
+const static float2 lbd = 0.5 / size, ubd = 1.0 - lbd;
+
+SamplerState s;
+float4 pick_color(float2 pos)
+{
+	return src.Sample(s, lerp(pos, clamp(pos, lbd, ubd), mode_outer));
+}
+float4 apply(float4 pos : SV_Position) : SV_Target
+{
+	float2 v = mul(mat_i, pos.xy / size - center + mov_i),
+		d = mul(mat_i, mov_d);
+	float4 color = 0.0;
+
+	const int n = int(quality);
+	for (int i = 0; i < n; i++) {
+		color += pick_color(v + center);
+		v = mul(mat_d, v + d); d = mul(mat_d, d);
+	}
+
+	return color / quality;
+}
+]]
+--[[pixelshader@apply_chroma:
+Texture2D src : register(t0);
+cbuffer constant0 : register(b0) {
+	float2 zmrot_d_r, zmrot_d_g, zmrot_d_b;
+	float2 zmrot_i_r, zmrot_i_g, zmrot_i_b;
+	float2 mov_d_r, mov_d_g, mov_d_b;
+	float2 mov_i_r, mov_i_g, mov_i_b;
+	float2 center, size;
+	float quality, mode_outer, mode_blend;
+};
+
+float2x2 make_mat(float2 zmrot)
+{
+	return float2x2(
+		zmrot.x, -zmrot.y * size.y / size.x,
+		zmrot.y * size.x / size.y, zmrot.x);
+}
+const static float2x2
+	mat_d[3] = { make_mat(zmrot_d_r), make_mat(zmrot_d_g), make_mat(zmrot_d_b) },
+	mat_i[3] = { make_mat(zmrot_i_r), make_mat(zmrot_i_g), make_mat(zmrot_i_b) };
+const static float2 lbd = 0.5 / size, ubd = 1.0 - lbd;
+
+SamplerState s;
+float4 pick_color(float2 pos)
+{
+	return src.Sample(s, lerp(pos, clamp(pos, lbd, ubd), mode_outer));
+}
+float4 apply_chroma(float4 pos : SV_Position) : SV_Target
+{
+	float2 v[3] = {
+		mul(mat_i[0], pos.xy / size - center + mov_i_r),
+		mul(mat_i[1], pos.xy / size - center + mov_i_g),
+		mul(mat_i[2], pos.xy / size - center + mov_i_b)
+	}, d[3] = {
+		mul(mat_i[0], mov_d_r),
+		mul(mat_i[1], mov_d_g),
+		mul(mat_i[2], mov_d_b)
+	};
+	float2 color[3] = { { 0.0, 0.0 }, { 0.0, 0.0 }, { 0.0, 0.0 } };
+
+	const int n = int(quality);
+	for (int i = 0; i < n; i++) {
+		color[0] += pick_color(v[0] + center).ra;
+		color[1] += pick_color(v[1] + center).ga;
+		color[2] += pick_color(v[2] + center).ba;
+		for (int k = 0; k < 3; k++) {
+			v[k] = mul(mat_d[k], v[k] + d[k]); d[k] = mul(mat_d[k], d[k]);
+		}
+	}
+
+	return float4(color[0].x, color[1].x, color[2].x, lerp(
+		max(color[0].y, max(color[1].y, color[2].y)),
+		max((color[0].y + color[1].y + color[2].y) / 3,
+			max(color[0].x, max(color[1].x, color[2].x))),
+		mode_blend)) / quality;
+}
+]]
+
+local obj, tonumber, type, math = obj, tonumber, type, math;
+
+-- set anchors.
+obj.setanchor("center",1);
+obj.setanchor("track",0,"star");
+
+-- take parameters.
+local dir_x, dir_y, cx, cy = obj.track0, obj.track1, tonumber(center[1]) or 0, tonumber(center[2]) or 0;
+--[==[
+	PI = {
+		dir: table? { x, y },
+		rad: number?,
+		rot: number?,
+		center: table? { x, y },
+		amount: number?,
+		rel_pos: number?,
+		chroma: 0|1|2|3|4|5|nil,
+		chrm_abrr: number?,
+		keep_size: boolean|number?,
+		quality: number?,
+	}
+--]==]
+if type(PI.dir) == "table" then
+	dir_x = tonumber(PI.dir[1]) or dir_x;
+	dir_y = tonumber(PI.dir[2]) or dir_y;
+end
+rad = tonumber(PI.rad) or rad;
+rot = tonumber(PI.rot) or rot;
+if type(PI.center) == "table" then
+	cx = tonumber(PI.center[1]) or cx;
+	cy = tonumber(PI.center[2]) or cy;
+end
+amount = tonumber(PI.amount) or amount;
+rel_pos = tonumber(PI.rel_pos) or rel_pos;
+chroma = tonumber(PI.chroma) or chroma;
+chrm_abrr = tonumber(PI.chrm_abrr) or chrm_abrr;
+if type(PI.keep_size) == "boolean" then keep_size = PI.keep_size;
+elseif type(PI.keep_size) == "number" then keep_size = PI.keep_size ~= 0;
+else keep_size = keep_size ~= 0 end
+quality = tonumber(PI.quality) or quality;
+
+-- normalize paramters.
+rad = math.max(rad / 100, 0.01);
+rot = rot * math.pi / 180;
+amount = amount / 100;
+rel_pos = math.min(math.max(rel_pos / 100, -1), 1);
+chroma = math.floor(0.5 + chroma);
+chrm_abrr = math.min(math.max(chrm_abrr / 100, -1), 1);
+quality = math.min(math.max(math.floor(0.5 + quality), 2), 4096);
+
+if amount == 0 or (rad == 1 and rot == 0 and dir_x == 0 and dir_y == 0) then return end
+
+-- erase amount.
+rad = rad ^ amount;
+rot = rot * amount;
+dir_x = dir_x * amount;
+dir_y = dir_y * amount;
+
+-- calculation of bounding boxes.
+local function union_rect(l, t, r, b, L, T, R, B)
+	return math.min(l, L), math.min(t, T), math.max(r, R), math.max(b, B);
+end
+local function arc_bound_core2(R, A, a, a2, ...)
+	if A < 0 then
+		local l, t, r, b = arc_bound_core2(R, A + math.pi, a, a2, ...);
+		return -r, -b, -l, -t;
+	elseif A > math.pi / 2 then
+		local l, t, r, b = arc_bound_core2(R, A - math.pi / 2, a, a2, ...);
+		return -b, l, -t, r;
+	elseif a2 then
+		local l, t, r, b = arc_bound_core2(R, A, a);
+		return union_rect(l, t, r, b, arc_bound_core2(R, A, a2, ...));
+	elseif a < 0 then
+		local l, t, r, b = arc_bound_core2(R, math.pi / 2 - A, -a)
+		return t, l, b, r;
+	end
+
+	a = a + A;
+	local l, t, r, b = -R, -R, R, R;
+	if a < 0.5 * math.pi then b = R * math.sin(a) end
+	if a < 1.0 * math.pi then l = R * math.cos(a) end
+	if a < 1.5 * math.pi then t = R * math.sin(a) end
+	if a < 2.0 * math.pi then r = R * math.cos(a) end
+	return l, t, r, b;
+end
+local function arc_bound_core(x, y, ...)
+	return arc_bound_core2((x ^ 2 + y ^ 2) ^ 0.5, math.atan2(y, x), ...);
+end
+local function arc_bound(left, top, right, bottom, ...)
+	local l, t, r, b = arc_bound_core(left, top, ...);
+	l, t, r, b = union_rect(l, t, r, b, arc_bound_core(right, top, ...));
+	l, t, r, b = union_rect(l, t, r, b, arc_bound_core(right, bottom, ...));
+	return union_rect(l, t, r, b, arc_bound_core(left, bottom, ...));
+end
+
+local function calc_extra_size(width, height, scale1, rotate1, move_x1, move_y1, scale2, rotate2, move_x2, move_y2, cx, cy)
+	-- find the final bounding box.
+	local l, t, r, b =
+		-width / 2 - cx, -height / 2 - cy,
+		width / 2 - cx, height / 2 - cy;
+
+	-- possible inflation by rotation.
+	l, t, r, b = union_rect(l, t, r, b,
+		arc_bound(l, t, r, b, rotate1, rotate2));
+
+	-- possible inflation by scaling.
+	local s = math.max(scale1, scale2);
+	l, t, r, b = union_rect(l, t, r, b, s * l, s * t, s * r, s * b);
+
+	-- possible inflation by movement.
+	l = l + math.min(move_x1, move_x2);
+	t = t + math.min(move_y1, move_y2);
+	r = r + math.max(move_x1, move_x2);
+	b = b + math.max(move_y1, move_y2);
+
+	-- calculate and return the extra size required.
+	return
+		math.ceil(math.max(0, -l - cx - width / 2)),
+		math.ceil(math.max(0, -t - cy - height / 2)),
+		math.ceil(math.max(0, r + cx - width / 2)),
+		math.ceil(math.max(0, b + cy - height / 2));
+end
+
+local function transform_info(p1, p2)
+	return {
+		scale1  = rad   ^ p1, scale2  = rad   ^ p2,
+		rotate1 = rot   * p1, rotate2 = rot   * p2,
+		move_x1 = dir_x * p1, move_x2 = dir_x * p2,
+		move_y1 = dir_y * p1, move_y2 = dir_y * p2,
+
+		scale_d = rad ^ ((p2 - p1) / (quality - 1)),
+		rotate_d = rot * (p2 - p1) / (quality - 1),
+		move_x_d = dir_x * (p2 - p1) / (quality - 1),
+		move_y_d = dir_y * (p2 - p1) / (quality - 1),
+	};
+end
+
+-- calculate the beggining and ending states.
+local w, h = obj.w, obj.h;
+local rel_pos1, rel_pos2 = (rel_pos - 1) / 2, (rel_pos + 1) / 2;
+local info, offset_x, offset_y = transform_info(rel_pos1, rel_pos2), 0, 0;
+
+-- expand the canvas unless specified.
+if not keep_size then
+	obj.copybuffer("tempbuffer", "object");
+
+	local l, t, r, b = calc_extra_size(w, h,
+		info.scale1, info.rotate1, info.move_x1, info.move_y1,
+		info.scale2, info.rotate2, info.move_x2, info.move_y2, cx, cy);
+
+	-- cap to the maximum size of images.
+	local max_w, max_h = obj.getinfo("image_max");
+	if l + r + w > max_w then
+		local diff = (l + r + w - max_w) / 2;
+		l, r = l - math.ceil(diff), r - math.floor(diff);
+		if l < 0 then l, r = 0, r + l end
+		if r < 0 then l, r = l + r, 0 end
+	end
+	if t + b + h > max_h then
+		local diff = (t + b + h - max_h) / 2;
+		t, b = t - math.ceil(diff), b - math.floor(diff);
+		if t < 0 then t, b = 0, b + t end
+		if b < 0 then t, b = t + b, 0 end
+	end
+
+	-- expand the canvas and reposition the coordinates.
+	obj.effect("領域拡張", "上", t, "下", b, "左", l, "右", r);
+	obj.cx, obj.cy = obj.cx + (l - r) / 2, obj.cy + (t - b) / 2; -- exedit 0.92 の仕様と違い，"領域拡張" では中心座標は調整されない．
+	offset_x, offset_y = l, t;
+end
+
+if chrm_abrr == 0 then
+	-- apply the shader.
+	obj.pixelshader("apply", "object", keep_size and "object" or "tempbuffer",
+	{
+		math.cos(-info.rotate_d) / info.scale_d, math.sin(-info.rotate_d) / info.scale_d,
+		math.cos(-info.rotate1) / info.scale1, math.sin(-info.rotate1) / info.scale1,
+		-info.move_x_d / w, -info.move_y_d / h,
+		-(info.move_x1 + offset_x) / w, -(info.move_y1 + offset_y) / h,
+
+		cx / w + 0.5, cy / h + 0.5, w, h,
+		quality, keep_size and 1 or 0
+	});
+else
+	-- prepare transforms for each color component.
+	local t2, t3 = 1 - chrm_abrr ^ 2 / 2, 1 - chrm_abrr ^ 2;
+	local infos = {
+		transform_info(rel_pos1 * t3, rel_pos2 * t3),
+		transform_info(rel_pos1 * t2, rel_pos2 * t2),
+		info,
+	};
+
+	-- re-order the color components.
+	if chrm_abrr < 0 then infos[1], infos[3] = infos[3], infos[1] end
+	local max_alpha = chroma >= 3; if max_alpha then chroma = chroma - 3 end
+	if chroma == 0 then -- nothing.
+	elseif chroma == 1 then infos[2], infos[3] = infos[3], infos[2];
+	elseif chroma == 2 then infos[1], infos[2] = infos[2], infos[1] end
+
+	-- apply the shader.
+	obj.pixelshader("apply_chroma", "object", keep_size and "object" or "tempbuffer",
+	{
+		math.cos(-infos[1].rotate_d) / infos[1].scale_d, math.sin(-infos[1].rotate_d) / infos[1].scale_d,
+		math.cos(-infos[2].rotate_d) / infos[2].scale_d, math.sin(-infos[2].rotate_d) / infos[2].scale_d,
+		math.cos(-infos[3].rotate_d) / infos[3].scale_d, math.sin(-infos[3].rotate_d) / infos[3].scale_d,
+
+		math.cos(-infos[1].rotate1) / infos[1].scale1, math.sin(-infos[1].rotate1) / infos[1].scale1,
+		math.cos(-infos[2].rotate1) / infos[2].scale1, math.sin(-infos[2].rotate1) / infos[2].scale1,
+		math.cos(-infos[3].rotate1) / infos[3].scale1, math.sin(-infos[3].rotate1) / infos[3].scale1,
+
+		-infos[1].move_x_d / w, -infos[1].move_y_d / h,
+		-infos[2].move_x_d / w, -infos[2].move_y_d / h,
+		-infos[3].move_x_d / w, -infos[3].move_y_d / h,
+
+		-(infos[1].move_x1 + offset_x) / w, -(infos[1].move_y1 + offset_y) / h,
+		-(infos[2].move_x1 + offset_x) / w, -(infos[2].move_y1 + offset_y) / h,
+		-(infos[3].move_x1 + offset_x) / w, -(infos[3].move_y1 + offset_y) / h,
+
+		cx / w + 0.5, cy / h + 0.5, w, h,
+		quality, keep_size and 1 or 0, max_alpha and 0 or 1
+	});
+end
