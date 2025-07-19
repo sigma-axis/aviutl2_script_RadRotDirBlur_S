@@ -22,7 +22,12 @@
 
 ##  導入方法
 
-`%ProgramData%` 内の `aviutl2/Script` フォルダ (通常は `C:/ProgramData/aviutl2/Script` フォルダ) に `RadRotDirBlur_S.anm2` をコピーしてください．
+以下のフォルダのいずれかに `RadRotDirBlur_S.anm2` をコピーしてください．
+
+1.  `%ProgramData%` 内の `aviutl2/Script` フォルダ
+    - 通常は `C:/ProgramData/aviutl2/Script` フォルダ)
+
+1.  (1) のフォルダにある任意の名前のフォルダ
 
 初期状態だと「フィルタ効果を追加」メニューの「ぼかし」に RadRotDirBlur_S が追加されています．
 - 「オブジェクト追加メニューの設定」の「ラベル」項目で分類を変更できます．
