@@ -29,7 +29,7 @@
 
 ##  パラメタの説明
 
-![スクリプトの GUI](TODO: image.)
+![スクリプトの GUI](https://github.com/user-attachments/assets/eb8609c9-7b8c-4508-8045-e1d67d3eb3da)
 
 ### `移動X`, `移動Y`
 
@@ -81,7 +81,8 @@ RGB の各成分ごとにぼかしの移動量を減退させて，色収差の�
 
 1.  `色収差` からは 6 項目を選びます．
 
-    TODO: image.
+    ![色収差の選択肢](https://github.com/user-attachments/assets/769ff39f-f508-4fbe-8bdf-524b717824d9)
+
     - `A` と `B` の項目がありますが，`A` は不透明度が低くなる傾向が，`B` は色が暗くなる傾向があります．
 
 1.  `色収差強さ` を負にすると，色の並び順が逆転します．
@@ -139,8 +140,8 @@ RGB の各成分ごとにぼかしの移動量を減退させて，色収差の�
 
 $$
 \left[-\tfrac{1}{2}, +\tfrac{1}{2}\right] \ni t \mapsto r^t
-\begin{pmatrix} \cos t\theta & \sin t\theta \\
--\sin t\theta & \cos t\theta \end{pmatrix}
+\begin{pmatrix} \cos t\theta & -\sin t\theta \\
+\sin t\theta & \cos t\theta \end{pmatrix}
 p + t d \in \mathbb{R}^2
 $$
 
