@@ -18,7 +18,7 @@
 
   http://spring-fragrance.mints.ne.jp/aviutl
 
-  - `beta2` で動作確認済み．
+  - `beta3` で動作確認済み．
 
 ##  導入方法
 
@@ -155,7 +155,12 @@ $$
 
 ## 改版履歴
 
-- **v1.00 (for beta2)** (2025-04-13)
+- **v1.01 (for beta3)** (2025-07-20)
+
+  - `拡大率` と `色収差強さ` の精度を 1 桁追加．
+  - `AviUtl ExEdit2 beta3` での動作確認．
+
+- **v1.00 (for beta2)** (2025-07-19)
 
   - 初版．
   - [拡張編集 0.92 版](https://github.com/sigma-axis/aviutl_script_RadRotDirBlur_S) から移植．
