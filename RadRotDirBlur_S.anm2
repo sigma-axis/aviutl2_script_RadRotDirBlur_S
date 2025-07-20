@@ -22,7 +22,7 @@ SOFTWARE.
 
 https://mit-license.org/
 ]]
---information:RadRotDirBlur_S v1.00 (for beta2) by σ軸
+--information:RadRotDirBlur_S v1.01-beta1 (for beta2) by σ軸
 --label:ぼかし
 --track0:移動X,-4000,4000,0,0.01
 --track1:移動Y,-4000,4000,0,0.01
@@ -31,7 +31,7 @@ https://mit-license.org/
 --value@center:中心,{0,0}
 --track@amount:強さ,-200,200,100,0.01
 --track@rel_pos:相対位置,-100,100,0,0.01
---select@chroma:色収差,赤青A=0,赤緑A=1,緑青A=2,赤青B=3,赤緑B=4,緑青B=5
+--select@chroma:色収差=0,赤青A=0,赤緑A=1,緑青A=2,赤青B=3,赤緑B=4,緑青B=5
 --track@chrm_abrr:色収差強さ,-100,100,0,0.1
 --check@keep_size:サイズ固定,0
 --value@quality:精度,512
