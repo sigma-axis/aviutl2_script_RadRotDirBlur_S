@@ -18,7 +18,7 @@
 
   http://spring-fragrance.mints.ne.jp/aviutl
 
-  - `beta4` で動作確認済み．
+  - `beta20` で動作確認済み．
 
 ##  導入方法
 
@@ -158,6 +158,11 @@ $$
 
 
 ## 改版履歴
+
+- **v1.03 (for beta20)** (2025-11-17)
+
+  - HLSL の Sampler の設定を明示的に指定するように変更．
+  - `beta20` での動作確認．
 
 - **v1.02 (for beta3)** (2025-07-24)
 

@@ -22,7 +22,7 @@ SOFTWARE.
 
 https://mit-license.org/
 ]]
---information:RadRotDirBlur_S v1.02 (for beta3) by σ軸
+--information:RadRotDirBlur_S v1.03 (for beta20) by σ軸
 --label:ぼかし
 --track0:移動X,-4000,4000,0,0.01
 --track1:移動Y,-4000,4000,0,0.01
@@ -41,8 +41,9 @@ Texture2D src : register(t0);
 cbuffer constant0 : register(b0) {
 	float2 zmrot_d, zmrot_i, mov_d, mov_i;
 	float2 center, size;
-	float quality, mode_outer;
+	float quality;
 };
+SamplerState s : register(s0);
 
 float2x2 make_mat(float2 zmrot)
 {
@@ -55,11 +56,9 @@ const static float2x2
 	mat_i = make_mat(zmrot_i);
 const static float2 lbd = 0.5 / size, ubd = 1.0 - lbd;
 
-SamplerState s;
 float4 pick_color(float2 pos)
 {
-	float2 t = saturate(size * min(pos, 1 - pos) + 0.5);
-	return max(t.x * t.y, mode_outer) * src.Sample(s, clamp(pos, lbd, ubd));
+	return src.Sample(s, pos);
 }
 float4 apply(float4 pos : SV_Position) : SV_Target
 {
@@ -84,8 +83,9 @@ cbuffer constant0 : register(b0) {
 	float2 mov_d_r, mov_d_g, mov_d_b;
 	float2 mov_i_r, mov_i_g, mov_i_b;
 	float2 center, size;
-	float quality, mode_outer, mode_blend;
+	float quality, mode_blend;
 };
+SamplerState s : register(s0);
 
 float2x2 make_mat(float2 zmrot)
 {
@@ -98,11 +98,9 @@ const static float2x2
 	mat_i[3] = { make_mat(zmrot_i_r), make_mat(zmrot_i_g), make_mat(zmrot_i_b) };
 const static float2 lbd = 0.5 / size, ubd = 1.0 - lbd;
 
-SamplerState s;
 float4 pick_color(float2 pos)
 {
-	float2 t = saturate(size * min(pos, 1 - pos) + 0.5);
-	return max(t.x * t.y, mode_outer) * src.Sample(s, clamp(pos, lbd, ubd));
+	return src.Sample(s, pos);
 }
 float4 apply_chroma(float4 pos : SV_Position) : SV_Target
 {
@@ -310,14 +308,14 @@ if chrm_abrr == 0 then
 	-- apply the shader.
 	obj.pixelshader("apply", "object", keep_size and "object" or "tempbuffer",
 	{
-		math.cos(-info.rotate_d) / info.scale_d, math.sin(-info.rotate_d) / info.scale_d,
-		math.cos(-info.rotate1) / info.scale1, math.sin(-info.rotate1) / info.scale1,
-		-info.move_x_d / w, -info.move_y_d / h,
-		-(info.move_x1 + offset_x) / w, -(info.move_y1 + offset_y) / h,
+		math.cos(-info.rotate_d) / info.scale_d, math.sin(-info.rotate_d) / info.scale_d;
+		math.cos(-info.rotate1) / info.scale1, math.sin(-info.rotate1) / info.scale1;
+		-info.move_x_d / w, -info.move_y_d / h;
+		-(info.move_x1 + offset_x) / w, -(info.move_y1 + offset_y) / h;
 
-		cx / w + 0.5, cy / h + 0.5, w, h,
-		quality, keep_size and 1 or 0
-	});
+		cx / w + 0.5, cy / h + 0.5; w, h;
+		quality;
+	}, "copy", keep_size and "clamp" or "clip");
 else
 	-- prepare transforms for each color component.
 	local t2, t3 = 1 - chrm_abrr ^ 2 / 2, 1 - chrm_abrr ^ 2;
@@ -337,23 +335,23 @@ else
 	-- apply the shader.
 	obj.pixelshader("apply_chroma", "object", keep_size and "object" or "tempbuffer",
 	{
-		math.cos(-infos[1].rotate_d) / infos[1].scale_d, math.sin(-infos[1].rotate_d) / infos[1].scale_d,
-		math.cos(-infos[2].rotate_d) / infos[2].scale_d, math.sin(-infos[2].rotate_d) / infos[2].scale_d,
-		math.cos(-infos[3].rotate_d) / infos[3].scale_d, math.sin(-infos[3].rotate_d) / infos[3].scale_d,
+		math.cos(-infos[1].rotate_d) / infos[1].scale_d, math.sin(-infos[1].rotate_d) / infos[1].scale_d;
+		math.cos(-infos[2].rotate_d) / infos[2].scale_d, math.sin(-infos[2].rotate_d) / infos[2].scale_d;
+		math.cos(-infos[3].rotate_d) / infos[3].scale_d, math.sin(-infos[3].rotate_d) / infos[3].scale_d;
 
-		math.cos(-infos[1].rotate1) / infos[1].scale1, math.sin(-infos[1].rotate1) / infos[1].scale1,
-		math.cos(-infos[2].rotate1) / infos[2].scale1, math.sin(-infos[2].rotate1) / infos[2].scale1,
-		math.cos(-infos[3].rotate1) / infos[3].scale1, math.sin(-infos[3].rotate1) / infos[3].scale1,
+		math.cos(-infos[1].rotate1) / infos[1].scale1, math.sin(-infos[1].rotate1) / infos[1].scale1;
+		math.cos(-infos[2].rotate1) / infos[2].scale1, math.sin(-infos[2].rotate1) / infos[2].scale1;
+		math.cos(-infos[3].rotate1) / infos[3].scale1, math.sin(-infos[3].rotate1) / infos[3].scale1;
 
-		-infos[1].move_x_d / w, -infos[1].move_y_d / h,
-		-infos[2].move_x_d / w, -infos[2].move_y_d / h,
-		-infos[3].move_x_d / w, -infos[3].move_y_d / h,
+		-infos[1].move_x_d / w, -infos[1].move_y_d / h;
+		-infos[2].move_x_d / w, -infos[2].move_y_d / h;
+		-infos[3].move_x_d / w, -infos[3].move_y_d / h;
 
-		-(infos[1].move_x1 + offset_x) / w, -(infos[1].move_y1 + offset_y) / h,
-		-(infos[2].move_x1 + offset_x) / w, -(infos[2].move_y1 + offset_y) / h,
-		-(infos[3].move_x1 + offset_x) / w, -(infos[3].move_y1 + offset_y) / h,
+		-(infos[1].move_x1 + offset_x) / w, -(infos[1].move_y1 + offset_y) / h;
+		-(infos[2].move_x1 + offset_x) / w, -(infos[2].move_y1 + offset_y) / h;
+		-(infos[3].move_x1 + offset_x) / w, -(infos[3].move_y1 + offset_y) / h;
 
-		cx / w + 0.5, cy / h + 0.5, w, h,
-		quality, keep_size and 1 or 0, max_alpha and 0 or 1
-	});
+		cx / w + 0.5, cy / h + 0.5; w, h;
+		quality; max_alpha and 0 or 1;
+	}, "copy", keep_size and "clamp" or "clip");
 end
