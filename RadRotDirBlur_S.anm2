@@ -22,8 +22,9 @@ SOFTWARE.
 
 https://mit-license.org/
 ]]
---information:RadRotDirBlur_S v1.04 (for beta22a) by σ軸
+--information:RadRotDirBlur_S v1.05 (for beta25) by σ軸
 --label:ぼかし
+--filter
 --track0:移動X,-4000,4000,0,0.01
 --track1:移動Y,-4000,4000,0,0.01
 --track@rad:拡大率,1,1000,100,0.001
@@ -154,10 +155,15 @@ local dir_x, dir_y, cx, cy = obj.track0, obj.track1, tonumber(center[1]) or 0, t
 		rel_pos:   number?,
 		chroma:    string?,
 		chrm_abrr: number?,
-		keep_size: boolean|number?,
+		keep_size: boolean|number|nil,
 		quality:   number?,
 	}
 --]==]
+local function as_bool(t, v)
+	if type(t) == "boolean" then return t;
+	elseif type(t) == "number" then return t ~= 0;
+	else return v end
+end
 if type(PI.dir) == "table" then
 	dir_x = tonumber(PI.dir[1]) or dir_x;
 	dir_y = tonumber(PI.dir[2]) or dir_y;
@@ -179,8 +185,8 @@ if PI.chroma then
 	chroma = name2num[PI.chroma] or chroma;
 end
 chrm_abrr = tonumber(PI.chrm_abrr) or chrm_abrr;
-if type(PI.keep_size) == "boolean" then keep_size = PI.keep_size;
-elseif type(PI.keep_size) == "number" then keep_size = PI.keep_size ~= 0 end
+keep_size = as_bool(PI.keep_size, keep_size)
+	or (obj.getinfo("version") >= 2002400 and obj.getinfo("filter"));
 quality = tonumber(PI.quality) or quality;
 
 -- normalize paramters.
