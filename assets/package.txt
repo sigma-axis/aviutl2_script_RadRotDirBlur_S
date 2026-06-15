@@ -1,0 +1,13 @@
+# RadRotDirBlur_S AviUtl ExEdit2 複合ブラースクリプト
+
+放射ブラー (radial blur), 回転ブラー (rotation blur), 方向ブラー (directional blur) の 3 つを複合したぼかし効果を適用する AviUtl ExEdit 2 用のスクリプトです．色収差の機能もあります．
+
+公開ページ:
+https://github.com/sigma-axis/aviutl2_script_RadRotDirBlur_S
+
+紹介動画:
+https://www.nicovideo.jp/watch/sm45201781
+
+お願い:
+ニコニコ動画での親作品登録をしていただけると励みになります．
+作品 ID: sm45201781
