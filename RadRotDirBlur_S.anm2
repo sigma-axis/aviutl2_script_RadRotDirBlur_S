@@ -1,6 +1,6 @@
 --[[
 MIT License
-Copyright (c) 2025 sigma-axis
+Copyright (c) 2025-2026 sigma-axis
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,24 +22,29 @@ SOFTWARE.
 
 https://mit-license.org/
 ]]
---information:RadRotDirBlur_S v1.05 (for beta25) by σ軸
+--information:RadRotDirBlur_S v1.10-r1 (for beta50) by σ軸
 --label:ぼかし
 --filter
---track0:移動X,-4000,4000,0,0.01
---track1:移動Y,-4000,4000,0,0.01
---track@rad:拡大率,1,1000,100,0.001
---track@rot:回転角,-720,720,00,0.01
---value@center:中心,{0,0}
---track@amount:強さ,-200,200,100,0.01
+--track@dir_x:移動X,-4000,4000,0,0.01,,0.25
+--track@dir_y:移動Y,-4000,4000,0,0.01,,0.25
+--trackgroup@dir_x,dir_y:directional
+--track@rad:拡大率,1,10000,100,0.001,,0.02
+--track@rot:回転角,-3600,3600,00,0.01,,0.1
+--track@cx:中心X,-4000,4000,0,0.01,,0.25
+--track@cy:中心Y,-4000,4000,0,0.01,,0.25
+--trackgroup@cx,cy:center_of_blur
+--track@amount:強さ,-1000,1000,100,0.01,,0.2
 --track@rel_pos:相対位置,-100,100,0,0.01
 --group:色収差設定,false
 --select@chroma:色収差=0,赤青A=0,赤緑A=1,緑青A=2,赤青B=3,赤緑B=4,緑青B=5
 --track@chrm_abrr:色収差強さ,-100,100,0,0.01
 --group
---check@keep_size:サイズ固定,false
+--checksection@keep_size:サイズ固定,false,false
 --group:その他,false
---value@quality:精度,512
+--track@quality:精度,2,4096,512,1,,0.25
 --value@PI:PI,{}
+--group:互換対応(将来削除予定),false
+--value@center:中心,{}
 --[[pixelshader@apply:
 Texture2D src : register(t0);
 cbuffer constant0 : register(b0) {
@@ -129,22 +134,24 @@ float4 apply_chroma(float4 pos : SV_Position) : SV_Target
 		}
 	}
 
-	return float4(color[0].x, color[1].x, color[2].x, lerp(
-		max(color[0].y, max(color[1].y, color[2].y)),
-		max((color[0].y + color[1].y + color[2].y) / 3,
-			max(color[0].x, max(color[1].x, color[2].x))),
-		mode_blend)) / quality;
+	float3
+		col = { color[0].x, color[1].x, color[2].x },
+		alp = { color[0].y, color[1].y, color[2].y };
+	const float alpha = dot(alp, 1) / 3;
+	if (mode_blend > 0) col = min(col, 1);
+	else col = (alp > 0 ? col / alp : 0) * alpha;
+	return float4(col, alpha);
 }
 ]]
 
 local obj, tonumber, type, math = obj, tonumber, type, math;
 
 -- set anchors.
-obj.setanchor("center",1);
-obj.setanchor("track",0,"star");
+obj.setanchor("dir_x,dir_y", 0, "line", "rgba", 0xf05050c0);
+obj.setanchor("cx,cy", 0, "line", "rgba", 0x208020c0);
+obj.setanchor({ dir_x, dir_y }, 0, "star", "color", 0xf05050);
 
 -- take parameters.
-local dir_x, dir_y, cx, cy = obj.track0, obj.track1, tonumber(center[1]) or 0, tonumber(center[2]) or 0;
 --[==[
 	PI = {
 		dir:       table? { x, y },
@@ -170,6 +177,7 @@ if type(PI.dir) == "table" then
 end
 rad = tonumber(PI.rad) or rad;
 rot = tonumber(PI.rot) or rot;
+cx, cy = tonumber(center[1]) or cx, tonumber(center[2]) or cy; -- legacy compatibility.
 if type(PI.center) == "table" then
 	cx = tonumber(PI.center[1]) or cx;
 	cy = tonumber(PI.center[2]) or cy;
@@ -342,7 +350,7 @@ else
 
 	-- re-order the color components.
 	if chrm_abrr < 0 then infos[1], infos[3] = infos[3], infos[1] end
-	local max_alpha = chroma >= 3; if max_alpha then chroma = chroma - 3 end
+	local mode_blend = chroma >= 3; if mode_blend then chroma = chroma - 3 end
 	if chroma == 0 then -- nothing.
 	elseif chroma == 1 then infos[2], infos[3] = infos[3], infos[2];
 	elseif chroma == 2 then infos[1], infos[2] = infos[2], infos[1] end
@@ -367,6 +375,6 @@ else
 		-(infos[3].move_x1 + offset_x) / w, -(infos[3].move_y1 + offset_y) / h;
 
 		cx / w + 0.5, cy / h + 0.5; w, h;
-		quality; max_alpha and 0 or 1;
+		quality; mode_blend and 0 or 1;
 	}, "copy", keep_size and "clamp" or "clip");
 end
