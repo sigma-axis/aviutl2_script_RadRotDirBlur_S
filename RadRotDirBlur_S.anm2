@@ -22,7 +22,7 @@ SOFTWARE.
 
 https://mit-license.org/
 ]]
---information:RadRotDirBlur_S v1.10-r1 (for beta50) by σ軸
+--information:RadRotDirBlur_S v1.10-r2 (for beta50) by σ軸
 --label:ぼかし
 --filter
 --track@dir_x:移動X,-4000,4000,0,0.01,,0.25
@@ -135,8 +135,8 @@ float4 apply_chroma(float4 pos : SV_Position) : SV_Target
 	}
 
 	float3
-		col = { color[0].x, color[1].x, color[2].x },
-		alp = { color[0].y, color[1].y, color[2].y };
+		col = float3(color[0].x, color[1].x, color[2].x) / quality,
+		alp = float3(color[0].y, color[1].y, color[2].y) / quality;
 	const float alpha = dot(alp, 1) / 3;
 	if (mode_blend > 0) col = min(col, 1);
 	else col = (alp > 0 ? col / alp : 0) * alpha;
@@ -149,7 +149,7 @@ local obj, tonumber, type, math = obj, tonumber, type, math;
 -- set anchors.
 obj.setanchor("dir_x,dir_y", 0, "line", "rgba", 0xf05050c0);
 obj.setanchor("cx,cy", 0, "line", "rgba", 0x208020c0);
-obj.setanchor({ dir_x, dir_y }, 0, "star", "color", 0xf05050);
+obj.setanchor({ dir_x, dir_y }, 1, "star", "color", 0xf05050);
 
 -- take parameters.
 --[==[
@@ -299,9 +299,9 @@ local rel_pos1, rel_pos2 = (rel_pos - 1) / 2, (rel_pos + 1) / 2;
 local info, offset_x, offset_y = transform_info(rel_pos1, rel_pos2), 0, 0;
 
 -- expand the canvas unless specified.
+local cache_name = "cache:radrotdirblur_s/obj";
+obj.copybuffer(cache_name, "object");
 if not keep_size then
-	obj.copybuffer("tempbuffer", "object");
-
 	local l, t, r, b = calc_extra_size(w, h,
 		info.scale1, info.rotate1, info.move_x1, info.move_y1,
 		info.scale2, info.rotate2, info.move_x2, info.move_y2, cx, cy);
@@ -322,14 +322,14 @@ if not keep_size then
 	end
 
 	-- expand the canvas and reposition the coordinates.
-	obj.effect("領域拡張", "上", t, "下", b, "左", l, "右", r);
-	obj.cx, obj.cy = obj.cx + (l - r) / 2, obj.cy + (t - b) / 2; -- exedit 0.92 の仕様と違い，"領域拡張" では中心座標は調整されない．
+	obj.clearbuffer("object", l + obj.w + r, t + obj.h + b);
+	obj.cx, obj.cy = obj.cx + (l - r) / 2, obj.cy + (t - b) / 2;
 	offset_x, offset_y = l, t;
 end
 
 if chrm_abrr == 0 then
 	-- apply the shader.
-	obj.pixelshader("apply", "object", keep_size and "object" or "tempbuffer",
+	obj.pixelshader("apply", "object", cache_name,
 	{
 		math.cos(-info.rotate_d) / info.scale_d, math.sin(-info.rotate_d) / info.scale_d;
 		math.cos(-info.rotate1) / info.scale1, math.sin(-info.rotate1) / info.scale1;
@@ -356,7 +356,7 @@ else
 	elseif chroma == 2 then infos[1], infos[2] = infos[2], infos[1] end
 
 	-- apply the shader.
-	obj.pixelshader("apply_chroma", "object", keep_size and "object" or "tempbuffer",
+	obj.pixelshader("apply_chroma", "object", cache_name,
 	{
 		math.cos(-infos[1].rotate_d) / infos[1].scale_d, math.sin(-infos[1].rotate_d) / infos[1].scale_d;
 		math.cos(-infos[2].rotate_d) / infos[2].scale_d, math.sin(-infos[2].rotate_d) / infos[2].scale_d;
