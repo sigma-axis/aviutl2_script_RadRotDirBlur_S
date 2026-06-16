@@ -4,13 +4,11 @@
 
 [ダウンロードはこちら．](https://github.com/sigma-axis/aviutl2_script_RadRotDirBlur_S/releases) [紹介動画．](https://www.nicovideo.jp/watch/sm45201781)
 
-![放射ブラーと回転ブラー，方向ブラー](https://github.com/user-attachments/assets/471485a6-92a2-4f0b-a71c-381577beef54)
+![複合ブラーの適用例](https://github.com/user-attachments/assets/5e3af2cb-92b2-432b-84ec-fde2fd1d4426)
 
-![組み合わせてできたブラー効果](https://github.com/user-attachments/assets/9172eeb8-2e64-413d-87a3-b805c704adcd)
+- 元画像: https://www.pexels.com/photo/low-angle-shot-of-a-tabby-cat-208984
 
-- 元画像: https://www.pexels.com/photo/green-leafed-tree-beside-body-of-water-during-daytime-158063
-
-パラメタの組み合わせによっては螺旋ブラーなど，既存のブラー効果を組み合わせるだけではできない効果も可能です．色収差の効果も付けられます．
+パラメタの組み合わせによっては螺旋ブラーなど，既存のブラー効果を合成するだけではできない効果も可能です．色収差の効果も付けられます．
 
 ##  お願い
 
@@ -55,7 +53,7 @@ Although, usage documentations for this script in languages other than Japanese 
 
 放射ブラーの拡大率を指定します．
 
-% 単位で最小値は 1, 最大値は 1000, 初期値は 100.
+% 単位で最小値は 1, 最大値は 10000, 初期値は 100.
 
 ### 回転角
 
@@ -175,6 +173,8 @@ $$
   - 「精度」をテキストボックスではなくトラックバーの形式に変更．
 
   - 「サイズ固定」のチェックボックスを，中間点ごとに切り替え可能なタイプに置き換え．
+
+  - AviUtl2 の仮想バッファを上書きしないような手順に変更．
 
   - **一部パラメタを互換対応扱い (非推奨) に**:
     1.  「中心」，代わりにトラックバーの「中心X/Y」を追加．
