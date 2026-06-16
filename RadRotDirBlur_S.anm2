@@ -22,7 +22,7 @@ SOFTWARE.
 
 https://mit-license.org/
 ]]
---information:RadRotDirBlur_S v1.10-r2 (for beta50) by σ軸
+--information:RadRotDirBlur_S v1.10 (for beta50) by σ軸
 --label:ぼかし
 --filter
 --track@dir_x:移動X,-4000,4000,0,0.01,,0.25
