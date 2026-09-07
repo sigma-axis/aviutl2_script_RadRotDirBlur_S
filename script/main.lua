@@ -182,11 +182,11 @@ local function arc_bound(left, top, right, bottom, ...)
 	return union_rect(l, t, r, b, arc_bound_core(left, bottom, ...));
 end
 
-local function calc_extra_size(width, height, scale1, rotate1, move_x1, move_y1, scale2, rotate2, move_x2, move_y2, cx, cy)
+local function calc_extra_size(width, height, scale1, rotate1, move_x1, move_y1, scale2, rotate2, move_x2, move_y2, center_x, center_y)
 	-- find the final bounding box.
 	local l, t, r, b =
-		-width / 2 - cx, -height / 2 - cy,
-		width / 2 - cx, height / 2 - cy;
+		-width / 2 - center_x, -height / 2 - center_y,
+		width / 2 - center_x, height / 2 - center_y;
 
 	-- possible inflation by rotation.
 	l, t, r, b = union_rect(l, t, r, b,
@@ -204,10 +204,10 @@ local function calc_extra_size(width, height, scale1, rotate1, move_x1, move_y1,
 
 	-- calculate and return the extra size required.
 	return
-		math.ceil(math.max(0, -l - cx - width / 2)),
-		math.ceil(math.max(0, -t - cy - height / 2)),
-		math.ceil(math.max(0, r + cx - width / 2)),
-		math.ceil(math.max(0, b + cy - height / 2));
+		math.ceil(math.max(0, -l - center_x - width / 2)),
+		math.ceil(math.max(0, -t - center_y - height / 2)),
+		math.ceil(math.max(0, r + center_x - width / 2)),
+		math.ceil(math.max(0, b + center_y - height / 2));
 end
 
 local function transform_info(p1, p2)
