@@ -30,6 +30,10 @@ local cx = 0
 local cy = 0
 
 --trackgroup@cx,cy:center_of_blur
+---$checksection:回転中心を基準
+local center_based = false
+
+--hide@center_based:filter~=0
 ---$track:強さ, min = -1000, max = 1000, step = 0.01, scale = 0.2
 local amount = 100
 
@@ -66,6 +70,7 @@ local quality = 512
 ---     :  rad: number?,
 ---     :  rot: number?,
 ---     :  center: table? { x, y },
+---     :  center_based: boolean|number|nil,
 ---     :  amount: number?,
 ---     :  rel_pos: number?,
 ---     :  chroma: string?,
@@ -91,9 +96,14 @@ local obj, tonumber, type, math = obj, tonumber, type, math;
 
 -- set anchors.
 if obj.getoption("gui") then
-    obj.setanchor("dir_x,dir_y", 0, "line", "rgba", 0xf05050c0);
-    obj.setanchor("cx,cy", 0, "line", "rgba", 0x208020c0);
-    obj.setanchor({ dir_x, dir_y }, 1, "star", "color", 0xf05050);
+	local center_x, center_y = 0, 0;
+	if center_based then
+		center_x, center_y = obj.getvalue("center");
+		center_x, center_y = center_x + obj.cx, center_y + obj.cy;
+	end
+	obj.setanchor("cx,cy", 0, "line", "offset", center_x, center_y, "rgba", 0x208020c0);
+	obj.setanchor("dir_x,dir_y", 0, "line", "offset", center_x, center_y, "rgba", 0xf05050c0);
+	obj.setanchor({ 0, 0, dir_x, dir_y }, 2, "line", "offset", center_x, center_y, "color", 0xf05050);
 end
 
 -- take parameters.
@@ -113,6 +123,7 @@ if type(PI.center) == "table" then
 	cx = tonumber(PI.center[1]) or cx;
 	cy = tonumber(PI.center[2]) or cy;
 end
+center_based = as_bool(PI.center_based, center_based) and not obj.getinfo("filter");
 amount = tonumber(PI.amount) or amount;
 rel_pos = tonumber(PI.rel_pos) or rel_pos;
 if PI.chroma then
@@ -124,13 +135,16 @@ if PI.chroma then
 	chroma = name2num[PI.chroma] or chroma;
 end
 chrm_abrr = tonumber(PI.chrm_abrr) or chrm_abrr;
-keep_size = as_bool(PI.keep_size, keep_size)
-	or (obj.getinfo("version") >= 2002400 and obj.getinfo("filter"));
+keep_size = as_bool(PI.keep_size, keep_size) or obj.getinfo("filter");
 quality = tonumber(PI.quality) or quality;
 
 -- normalize paramters.
 rad = math.max(rad / 100, 0.01);
 rot = rot * math.pi / 180;
+if center_based then
+	local x, y = obj.getvalue("center");
+    cx, cy = cx + x + obj.cx, cy + y + obj.cy;
+end
 amount = amount / 100;
 rel_pos = math.min(math.max(rel_pos / 100, -1), 1);
 chroma = math.min(math.max(math.floor(0.5 + chroma), 0), 5);
