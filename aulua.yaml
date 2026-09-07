@@ -10,7 +10,7 @@ project:
 package:
   id: RadRotDirBlur_S
   name: 複合ブラースクリプト RadRotDirBlur_S
-  version: v1.20-wip
+  version: v1.20
   information: "{name} {version} by {AUTHOR}"
   script_sub_dir: ""
   uninstall_sub_folder_file: false
