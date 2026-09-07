@@ -1,0 +1,10 @@
+; Tooltip definitions
+;===============================================================
+; Target: RadRotDirBlur_S (https://github.com/sigma-axis/aviutl2_script_RadRotDirBlur_S)
+; Target Version: ${ver}
+; Language: Default
+
+[Language]
+Information=Default tooltips for RadRotDirBlur_S ${ver} (日本語)
+
+;===============================================================

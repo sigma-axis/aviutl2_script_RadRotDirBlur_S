@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/karoterra/aviutl2-aulua/refs/heads/main/schema/aulua.schema.json
+project:
+  variables:
+    NAME: RadRotDirBlur_S
+    AUTHOR: σ軸
+    PUBLISH_PAGE: https://github.com/sigma-axis/aviutl2_script_RadRotDirBlur_S
+    LEAST_AVIUTL_VERSION: "2010600"
+    LEAST_AVIUTL_VERSION_STRING: "2.1.6"
+
+package:
+  id: RadRotDirBlur_S
+  name: 複合ブラースクリプト RadRotDirBlur_S
+  version: v1.20-wip
+  information: "{name} {version} by {AUTHOR}"
+  script_sub_dir: ""
+  uninstall_sub_folder_file: false
+  message:
+    text: |
+      # RadRotDirBlur_S AviUtl ExEdit2 複合ブラースクリプト
+
+      放射ブラー (radial blur), 回転ブラー (rotation blur), 方向ブラー (directional blur) の 3 つを複合したぼかし効果を適用する AviUtl ExEdit 2 用のスクリプトです．色収差の機能もあります．
+
+      公開ページ:
+      https://github.com/sigma-axis/aviutl2_script_RadRotDirBlur_S
+
+      紹介動画:
+      https://www.nicovideo.jp/watch/sm45201781
+
+      お願い:
+      ニコニコ動画での親作品登録をしていただけると励みになります．
+      作品 ID: sm45201781
+
+  assets:
+    - src: README.md
+      dest: Script/{id}/README.md
+    - src: LICENSE
+      dest: Script/{id}/LICENSE
+  file_name: package.au2pkg.zip
+
+build:
+  out_dir: build
+
+scripts:
+  - name: RadRotDirBlur_S.anm2
+    sources:
+      - path: script/preamble.lua
+      - path: script/main.lua
+
+language:
+  files:
+    - path: build/Default.RadRotDirBlur_S.aul2
+      text: false
+      tooltip: true

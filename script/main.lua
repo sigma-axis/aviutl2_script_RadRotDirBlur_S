@@ -1,171 +1,102 @@
---[[
-MIT License
-Copyright (c) 2025-2026 sigma-axis
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-https://mit-license.org/
-]]
---information:RadRotDirBlur_S v1.10 (for beta50) by σ軸
+--information:RadRotDirBlur_S ${PACKAGE_VERSION} by ${AUTHOR}
+---$nolang: script_name
+---$script_tips:放射ブラー，回転ブラー，方向ブラーの 3 つを複合したぼかし効果．
 --label:ぼかし
 --filter
---track@dir_x:移動X,-4000,4000,0,0.01,,0.25
---track@dir_y:移動Y,-4000,4000,0,0.01,,0.25
+--require:${LEAST_AVIUTL_VERSION}
+---$tips:方向ブラーの方向
+---$track:移動X, min = -4000, max = 4000, step = 0.01, scale = 0.25
+local dir_x = 0
+
+---$tips:方向ブラーの方向
+---$track:移動Y, min = -4000, max = 4000, step = 0.01, scale = 0.25
+local dir_y = 0
+
 --trackgroup@dir_x,dir_y:directional
---track@rad:拡大率,1,10000,100,0.001,,0.02
---track@rot:回転角,-3600,3600,00,0.01,,0.1
---track@cx:中心X,-4000,4000,0,0.01,,0.25
---track@cy:中心Y,-4000,4000,0,0.01,,0.25
+---$tips:放射ブラーの拡大率
+---$track:拡大率, min = 1, max = 10000, step = 0.001, scale = 0.02
+local rad = 100
+
+---$tips:回転ブラーの回転角
+---$track:回転角, min = -3600, max = 3600, step = 0.01, scale = 0.1
+local rot = 0
+
+---$tips:放射ブラーと回転ブラーの中心
+---$track:中心X, min = -4000, max = 4000, step = 0.01, scale = 0.25
+local cx = 0
+
+---$tips:放射ブラーと回転ブラーの中心
+---$track:中心Y, min = -4000, max = 4000, step = 0.01, scale = 0.25
+local cy = 0
+
 --trackgroup@cx,cy:center_of_blur
---track@amount:強さ,-1000,1000,100,0.01,,0.2
---track@rel_pos:相対位置,-100,100,0,0.01
+---$track:強さ, min = -1000, max = 1000, step = 0.01, scale = 0.2
+local amount = 100
+
+---$track:相対位置, min = -100, max = 100, step = 0.01
+local rel_pos = 0
+
 --group:色収差設定,false
---select@chroma:色収差=0,赤青A=0,赤緑A=1,緑青A=2,赤青B=3,赤緑B=4,緑青B=5
---track@chrm_abrr:色収差強さ,-100,100,0,0.01
+---$tips:現実世界の正しい順序は「赤青」．A は B より半透明部分が減衰しやすい．
+---$select:色収差
+---赤青A = 0
+---赤緑A = 1
+---緑青A = 2
+---赤青B = 3
+---赤緑B = 4
+---緑青B = 5
+local chroma = 3
+
+---$track:色収差強さ, min = -100, max = 100, step = 0.01
+local chrm_abrr = 0
+
 --group
---checksection@keep_size:サイズ固定,false,false
+---$checksection:サイズ固定
+local keep_size = false
+
+--hide@keep_size:filter~=0
 --group:その他,false
---track@quality:精度,2,4096,512,1,,0.25
---value@PI:PI,{}
+---$tips:ぼかし計算のサンプル数
+---$track:精度, min = 2, max = 4096, step = 1, scale = 0.25
+local quality = 512
+
+---$nolang: name
+---$tips:PI = {
+---     :  dir: table? { x, y },
+---     :  rad: number?,
+---     :  rot: number?,
+---     :  center: table? { x, y },
+---     :  amount: number?,
+---     :  rel_pos: number?,
+---     :  chroma: string?,
+---     :  chrm_abrr: number?,
+---     :  keep_size: boolean|number|nil,
+---     :  quality: number?,
+---     :}
+---$value:PI
+local PI = {}
+
 --group:互換対応(将来削除予定),false
---value@center:中心,{}
+---$value:中心
+local center = {}
+
 --[[pixelshader@apply:
-Texture2D src : register(t0);
-cbuffer constant0 : register(b0) {
-	float2 zmrot_d, zmrot_i, mov_d, mov_i;
-	float2 center, size;
-	float quality;
-};
-SamplerState s : register(s0);
-
-float2x2 make_mat(float2 zmrot)
-{
-	return float2x2(
-		zmrot.x, -zmrot.y * size.y / size.x,
-		zmrot.y * size.x / size.y, zmrot.x);
-}
-const static float2x2
-	mat_d = make_mat(zmrot_d),
-	mat_i = make_mat(zmrot_i);
-const static float2 lbd = 0.5 / size, ubd = 1.0 - lbd;
-
-float4 pick_color(float2 pos)
-{
-	return src.Sample(s, pos);
-}
-float4 apply(float4 pos : SV_Position) : SV_Target
-{
-	float2 v = mul(mat_i, pos.xy / size - center + mov_i),
-		d = mul(mat_i, mov_d);
-	float4 color = 0.0;
-
-	const int n = int(quality);
-	for (int i = 0; i < n; i++) {
-		color += pick_color(v + center);
-		v = mul(mat_d, v + d); d = mul(mat_d, d);
-	}
-
-	return color / quality;
-}
+---$include "apply.hlsl"
 ]]
 --[[pixelshader@apply_chroma:
-Texture2D src : register(t0);
-cbuffer constant0 : register(b0) {
-	float2 zmrot_d_r, zmrot_d_g, zmrot_d_b;
-	float2 zmrot_i_r, zmrot_i_g, zmrot_i_b;
-	float2 mov_d_r, mov_d_g, mov_d_b;
-	float2 mov_i_r, mov_i_g, mov_i_b;
-	float2 center, size;
-	float quality, mode_blend;
-};
-SamplerState s : register(s0);
-
-float2x2 make_mat(float2 zmrot)
-{
-	return float2x2(
-		zmrot.x, -zmrot.y * size.y / size.x,
-		zmrot.y * size.x / size.y, zmrot.x);
-}
-const static float2x2
-	mat_d[3] = { make_mat(zmrot_d_r), make_mat(zmrot_d_g), make_mat(zmrot_d_b) },
-	mat_i[3] = { make_mat(zmrot_i_r), make_mat(zmrot_i_g), make_mat(zmrot_i_b) };
-const static float2 lbd = 0.5 / size, ubd = 1.0 - lbd;
-
-float4 pick_color(float2 pos)
-{
-	return src.Sample(s, pos);
-}
-float4 apply_chroma(float4 pos : SV_Position) : SV_Target
-{
-	float2 v[3] = {
-		mul(mat_i[0], pos.xy / size - center + mov_i_r),
-		mul(mat_i[1], pos.xy / size - center + mov_i_g),
-		mul(mat_i[2], pos.xy / size - center + mov_i_b)
-	}, d[3] = {
-		mul(mat_i[0], mov_d_r),
-		mul(mat_i[1], mov_d_g),
-		mul(mat_i[2], mov_d_b)
-	};
-	float2 color[3] = { { 0.0, 0.0 }, { 0.0, 0.0 }, { 0.0, 0.0 } };
-
-	const int n = int(quality);
-	for (int i = 0; i < n; i++) {
-		color[0] += pick_color(v[0] + center).ra;
-		color[1] += pick_color(v[1] + center).ga;
-		color[2] += pick_color(v[2] + center).ba;
-		for (int k = 0; k < 3; k++) {
-			v[k] = mul(mat_d[k], v[k] + d[k]); d[k] = mul(mat_d[k], d[k]);
-		}
-	}
-
-	float3
-		col = float3(color[0].x, color[1].x, color[2].x) / quality,
-		alp = float3(color[0].y, color[1].y, color[2].y) / quality;
-	const float alpha = dot(alp, 1) / 3;
-	if (mode_blend > 0) col = min(col, 1);
-	else col = (alp > 0 ? col / alp : 0) * alpha;
-	return float4(col, alpha);
-}
+---$include "apply_chroma.hlsl"
 ]]
 
 local obj, tonumber, type, math = obj, tonumber, type, math;
 
 -- set anchors.
-obj.setanchor("dir_x,dir_y", 0, "line", "rgba", 0xf05050c0);
-obj.setanchor("cx,cy", 0, "line", "rgba", 0x208020c0);
-obj.setanchor({ dir_x, dir_y }, 1, "star", "color", 0xf05050);
+if obj.getoption("gui") then
+    obj.setanchor("dir_x,dir_y", 0, "line", "rgba", 0xf05050c0);
+    obj.setanchor("cx,cy", 0, "line", "rgba", 0x208020c0);
+    obj.setanchor({ dir_x, dir_y }, 1, "star", "color", 0xf05050);
+end
 
 -- take parameters.
---[==[
-	PI = {
-		dir:       table? { x, y },
-		rad:       number?,
-		rot:       number?,
-		center:    table? { x, y },
-		amount:    number?,
-		rel_pos:   number?,
-		chroma:    string?,
-		chrm_abrr: number?,
-		keep_size: boolean|number|nil,
-		quality:   number?,
-	}
---]==]
 local function as_bool(t, v)
 	if type(t) == "boolean" then return t;
 	elseif type(t) == "number" then return t ~= 0;
@@ -262,8 +193,8 @@ local function calc_extra_size(width, height, scale1, rotate1, move_x1, move_y1,
 		arc_bound(l, t, r, b, rotate1, rotate2));
 
 	-- possible inflation by scaling.
-	local s = math.max(scale1, scale2);
-	l, t, r, b = union_rect(l, t, r, b, s * l, s * t, s * r, s * b);
+	l, t, r, b = union_rect(l, t, r, b, scale1 * l, scale1 * t, scale1 * r, scale1 * b);
+	l, t, r, b = union_rect(l, t, r, b, scale2 * l, scale2 * t, scale2 * r, scale2 * b);
 
 	-- possible inflation by movement.
 	l = l + math.min(move_x1, move_x2);
